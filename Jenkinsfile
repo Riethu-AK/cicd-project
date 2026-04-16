@@ -3,8 +3,6 @@ pipeline {
 
     environment {
         IMAGE_NAME = "riethuram/cicd-app"
-        DOCKER_USER = "riethuram"
-        DOCKER_PASS = "STUDENT@KEC"
     }
 
     stages {
@@ -18,7 +16,7 @@ pipeline {
         stage('Push Image') {
             steps {
                 bat '''
-                docker login -u %DOCKER_USER% -p %DOCKER_PASS%
+                docker login -u riethuram -p STUDENT@KEC
                 docker push %IMAGE_NAME%
                 '''
             }
