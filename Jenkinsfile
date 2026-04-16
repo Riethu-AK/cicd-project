@@ -15,20 +15,16 @@ pipeline {
 
         stage('Push Image') {
             steps {
-                bat '''
-                docker login -u riethuram -p STUDENT@KEC
-                docker push %IMAGE_NAME%
-                '''
+                bat 'docker login -u riethuram -p STUDENT@KEC'
+                bat 'docker push %IMAGE_NAME%'
             }
         }
 
         stage('Deploy') {
             steps {
-                bat '''
-                docker stop cicd-container || exit 0
-                docker rm cicd-container || exit 0
-                docker run -d -p 5000:5000 --name cicd-container %IMAGE_NAME%
-                '''
+                bat 'docker stop cicd-container || exit 0'
+                bat 'docker rm cicd-container || exit 0'
+                bat 'docker run -d -p 5000:5000 --name cicd-container %IMAGE_NAME%'
             }
         }
     }
