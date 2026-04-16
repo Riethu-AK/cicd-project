@@ -3,25 +3,24 @@ pipeline {
 
     environment {
         IMAGE_NAME = "riethuram/cicd-app"
+        DOCKER_USER = "riethuram"
+        DOCKER_PASS = "STUDENT@KEC"
     }
 
     stages {
 
         stage('Build Image') {
             steps {
-                script {
-                    docker.build("${IMAGE_NAME}")
-                }
+                bat 'docker build -t %IMAGE_NAME% .'
             }
         }
 
         stage('Push Image') {
             steps {
-                script {
-                    docker.withRegistry('', 'dockerhub-creds') {
-                        docker.image("${IMAGE_NAME}").push("latest")
-                    }
-                }
+                bat '''
+                docker login -u %DOCKER_USER% -p %DOCKER_PASS%
+                docker push %IMAGE_NAME%
+                '''
             }
         }
 
