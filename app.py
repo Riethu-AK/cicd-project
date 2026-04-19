@@ -1,29 +1,27 @@
-from flask import Flask, jsonify
+from flask import Flask, render_template, jsonify
 import socket
 import datetime
 
 app = Flask(__name__)
 
 @app.route("/")
-def home():
-    return f"""
-    <h1>CI/CD Pipeline Working 🚀</h1>
-    <p><b>Status:</b> Application is running successfully</p>
-    <p><b>Host:</b> {socket.gethostname()}</p>
-    <p><b>Time:</b> {datetime.datetime.now()}</p>
-    """
+def dashboard():
+    return render_template("index.html",
+        host=socket.gethostname(),
+        time=datetime.datetime.now()
+    )
 
-@app.route("/health")
+@app.route("/api/health")
 def health():
     return jsonify({
         "status": "UP",
-        "message": "Application is healthy"
+        "message": "Application is running"
     })
 
-@app.route("/info")
+@app.route("/api/info")
 def info():
     return jsonify({
-        "project": "CI/CD with Jenkins and Docker",
+        "project": "CI/CD Pipeline",
         "developer": "RIETHURAM A K",
         "version": "1.0"
     })
