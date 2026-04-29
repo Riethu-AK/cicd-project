@@ -9,12 +9,12 @@ import requests
 app = Flask(__name__)
 
 # 🔧 CHANGE THIS TOKEN (same as Jenkins job)
-JENKINS_TRIGGER_URL = "http://localhost:8080/job/cicd-pipeline/build?token=mytoken123"
+JENKINS_TRIGGER_URL = "http://localhost:8080/job/cicd-pipeline7/build?token=mytoken123"
 
 # ---- Jenkins status (no auth fallback) ----
 def get_jenkins_status():
     try:
-        url = "http://localhost:8080/job/cicd-pipeline/lastBuild/api/json"
+        url = "http://localhost:8080/job/cicd-pipeline7/lastBuild/api/json"
         res = requests.get(url, timeout=3)
         data = res.json()
         return data.get("result", "UNKNOWN"), data.get("number", "N/A")
