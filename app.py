@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, redirect
 import socket
 import datetime
 import psutil
@@ -8,10 +8,10 @@ import requests
 
 app = Flask(__name__)
 
-# 🔧 CHANGE THIS TOKEN (same as Jenkins job)
+# 🔧 CHANGE TOKEN if needed
 JENKINS_TRIGGER_URL = "http://localhost:8080/job/cicd-pipeline7/build?token=mytoken123"
 
-# ---- Jenkins status (no auth fallback) ----
+# ---- Jenkins status ----
 def get_jenkins_status():
     try:
         url = "http://localhost:8080/job/cicd-pipeline7/lastBuild/api/json"
@@ -21,7 +21,7 @@ def get_jenkins_status():
     except:
         return "SUCCESS", "7"
 
-# ---- Docker containers ----
+# ---- Docker ----
 def get_docker():
     try:
         return subprocess.check_output(
@@ -35,13 +35,13 @@ def get_docker():
 def get_logs():
     try:
         return subprocess.check_output(
-            "docker logs --tail 5 cicd-container",
+            "docker logs --tail 10 cicd-container",
             shell=True
         ).decode()
     except:
         return "No logs available"
 
-# ---- REAL DEPLOY (Jenkins trigger) ----
+# ---- Deploy ----
 @app.route("/deploy")
 def deploy():
     try:
@@ -50,7 +50,7 @@ def deploy():
     except:
         return jsonify({"status": "Failed to trigger Jenkins"})
 
-# ---- DASHBOARD ----
+# ---- Dashboard Page ----
 @app.route("/")
 def dashboard():
     cpu = psutil.cpu_percent()
@@ -63,9 +63,7 @@ def dashboard():
     boot_time = datetime.datetime.fromtimestamp(psutil.boot_time())
 
     containers = get_docker()
-    logs = get_logs()
     build_status, build_no = get_jenkins_status()
-
     color = "#22c55e" if build_status == "SUCCESS" else "#ef4444"
 
     return f"""
@@ -86,9 +84,15 @@ body {{
 
 .sidebar {{
     width: 220px;
-    background: #020617;
-    border-right: 1px solid #1e293b;
     padding: 20px;
+    border-right: 1px solid #1e293b;
+}}
+
+.sidebar a {{
+    display: block;
+    margin: 10px 0;
+    color: #94a3b8;
+    text-decoration: none;
 }}
 
 .main {{
@@ -115,26 +119,12 @@ body {{
     border: 1px solid #1e293b;
 }}
 
-h3 {{ color: #38bdf8; }}
-
-.green {{ color: #22c55e; }}
-.red {{ color: #ef4444; }}
-.yellow {{ color: #f59e0b; }}
-
 button {{
     background: #22c55e;
     border: none;
     padding: 10px;
     border-radius: 6px;
     cursor: pointer;
-    font-weight: bold;
-}}
-
-pre {{
-    background: #020617;
-    padding: 10px;
-    border-radius: 8px;
-    font-size: 12px;
 }}
 </style>
 
@@ -152,15 +142,13 @@ function deployApp() {{
 
 <div class="sidebar">
 <h2>DevOps</h2>
-<p>Dashboard</p>
-<p>Monitoring</p>
-<p>CI/CD</p>
-<p>Logs</p>
+<a href="/">Dashboard</a>
+<a href="/logs">Logs</a>
 </div>
 
 <div class="main">
 
-<div class="header">🚀 CI/CD DevOps Dashboard</div>
+<div class="header">🚀 CI/CD Dashboard</div>
 
 <div class="container">
 
@@ -168,14 +156,13 @@ function deployApp() {{
 <h3>System</h3>
 <p>{host}</p>
 <p>{time_now}</p>
-<p class="green">● Running</p>
 </div>
 
 <div class="card">
 <h3>Pipeline</h3>
 <p style="color:{color}">● {build_status}</p>
 <p>Build #{build_no}</p>
-<button onclick="deployApp()">🚀 Deploy</button>
+<button onclick="deployApp()">Deploy</button>
 </div>
 
 <div class="card">
@@ -185,8 +172,8 @@ function deployApp() {{
 
 <div class="card">
 <h3>Metrics</h3>
-<p>CPU: <span class="green">{cpu}%</span></p>
-<p>Memory: <span class="yellow">{memory}%</span></p>
+<p>CPU: {cpu}%</p>
+<p>Memory: {memory}%</p>
 </div>
 
 <div class="card">
@@ -200,13 +187,44 @@ function deployApp() {{
 <p>{boot_time}</p>
 </div>
 
-<div class="card">
-<h3>Logs</h3>
-<pre>{logs}</pre>
+</div>
 </div>
 
-</div>
-</div>
+</body>
+</html>
+"""
+
+# ---- Logs Page ----
+@app.route("/logs")
+def logs_page():
+    logs = get_logs()
+
+    return f"""
+<!DOCTYPE html>
+<html>
+<head>
+<title>Logs</title>
+
+<style>
+body {{
+    background: #020617;
+    color: white;
+    font-family: monospace;
+    padding: 20px;
+}}
+
+a {{
+    color: #38bdf8;
+}}
+</style>
+
+</head>
+
+<body>
+
+<h2>Container Logs</h2>
+<a href="/">⬅ Back</a>
+<pre>{logs}</pre>
 
 </body>
 </html>
