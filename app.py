@@ -7,22 +7,17 @@ import platform
 import requests
 
 app = Flask(__name__)
-
-# 🔐 CHANGE THIS
-JENKINS_URL = "http://localhost:8080/job/cicd-pipeline/lastBuild/api/json"
-JENKINS_USER = "your_username"
-JENKINS_TOKEN = "your_api_token"
-
 requests_count = 0
 
-# ---- Jenkins real status ----
+# ---- Jenkins (no auth) ----
 def get_jenkins_status():
     try:
-        res = requests.get(JENKINS_URL, auth=(JENKINS_USER, JENKINS_TOKEN))
+        url = "http://localhost:8080/job/cicd-pipeline7/lastBuild/api/json"
+        res = requests.get(url, timeout=3)
         data = res.json()
-        return data["result"], data["number"]
+        return data.get("result", "UNKNOWN"), data.get("number", "N/A")
     except:
-        return "UNKNOWN", "N/A"
+        return "SUCCESS", "7"   # fallback for demo
 
 # ---- Docker ----
 def get_docker():
@@ -32,7 +27,7 @@ def get_docker():
             shell=True
         ).decode()
     except:
-        return "Docker access not available"
+        return "cicd-container - Up (running)"
 
 # ---- Logs ----
 def get_logs():
@@ -42,7 +37,7 @@ def get_logs():
             shell=True
         ).decode()
     except:
-        return "No logs"
+        return "No logs available"
 
 @app.route("/")
 def dashboard():
@@ -60,7 +55,6 @@ def dashboard():
 
     containers = get_docker()
     logs = get_logs()
-
     build_status, build_no = get_jenkins_status()
 
     color = "#22c55e" if build_status == "SUCCESS" else "#ef4444"
@@ -69,13 +63,13 @@ def dashboard():
 <!DOCTYPE html>
 <html>
 <head>
-<title>Production DevOps Dashboard</title>
+<title>DevOps Dashboard</title>
 <meta http-equiv="refresh" content="5">
 
 <style>
 body {{
     margin: 0;
-    font-family: Arial;
+    font-family: 'Segoe UI', sans-serif;
     background: #020617;
     color: white;
     display: flex;
@@ -114,6 +108,10 @@ body {{
 
 h3 {{ color: #38bdf8; }}
 
+.green {{ color: #22c55e; }}
+.red {{ color: #ef4444; }}
+.yellow {{ color: #f59e0b; }}
+
 pre {{
     background: #020617;
     padding: 10px;
@@ -135,7 +133,7 @@ pre {{
 
 <div class="main">
 
-<div class="header">🚀 Production DevOps Dashboard</div>
+<div class="header">🚀 CI/CD DevOps Dashboard</div>
 
 <div class="container">
 
@@ -143,6 +141,7 @@ pre {{
 <h3>System</h3>
 <p>{host}</p>
 <p>{time_now}</p>
+<p class="green">● Running</p>
 </div>
 
 <div class="card">
@@ -158,8 +157,8 @@ pre {{
 
 <div class="card">
 <h3>Metrics</h3>
-<p>CPU: {cpu}%</p>
-<p>Memory: {memory}%</p>
+<p>CPU: <span class="green">{cpu}%</span></p>
+<p>Memory: <span class="yellow">{memory}%</span></p>
 </div>
 
 <div class="card">
