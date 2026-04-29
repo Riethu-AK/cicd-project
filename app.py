@@ -7,9 +7,11 @@ import platform
 import requests
 
 app = Flask(__name__)
-requests_count = 0
 
-# ---- Jenkins (no auth fallback) ----
+# 🔧 CHANGE THIS TOKEN (same as Jenkins job)
+JENKINS_TRIGGER_URL = "http://localhost:8080/job/cicd-pipeline/build?token=mytoken123"
+
+# ---- Jenkins status (no auth fallback) ----
 def get_jenkins_status():
     try:
         url = "http://localhost:8080/job/cicd-pipeline/lastBuild/api/json"
@@ -39,25 +41,18 @@ def get_logs():
     except:
         return "No logs available"
 
-# ---- DEPLOY ACTION ----
+# ---- REAL DEPLOY (Jenkins trigger) ----
 @app.route("/deploy")
 def deploy():
     try:
-        subprocess.call("docker rm -f cicd-container", shell=True)
-        subprocess.call(
-            "docker run -d -p 5000:5000 --name cicd-container riethuram/cicd-app",
-            shell=True
-        )
-        return jsonify({"status": "Deployment triggered"})
+        requests.post(JENKINS_TRIGGER_URL)
+        return jsonify({"status": "Jenkins Pipeline Triggered"})
     except:
-        return jsonify({"status": "Deployment failed"})
+        return jsonify({"status": "Failed to trigger Jenkins"})
 
-# ---- MAIN DASHBOARD ----
+# ---- DASHBOARD ----
 @app.route("/")
 def dashboard():
-    global requests_count
-    requests_count += 1
-
     cpu = psutil.cpu_percent()
     memory = psutil.virtual_memory().percent
     host = socket.gethostname()
@@ -203,11 +198,6 @@ function deployApp() {{
 <div class="card">
 <h3>Uptime</h3>
 <p>{boot_time}</p>
-</div>
-
-<div class="card">
-<h3>Traffic</h3>
-<p>{requests_count} hits</p>
 </div>
 
 <div class="card">
