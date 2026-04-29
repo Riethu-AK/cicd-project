@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 import socket
 import datetime
 import psutil
@@ -9,17 +9,17 @@ import requests
 app = Flask(__name__)
 requests_count = 0
 
-# ---- Jenkins (no auth) ----
+# ---- Jenkins (no auth fallback) ----
 def get_jenkins_status():
     try:
-        url = "http://localhost:8080/job/cicd-pipeline7/lastBuild/api/json"
+        url = "http://localhost:8080/job/cicd-pipeline/lastBuild/api/json"
         res = requests.get(url, timeout=3)
         data = res.json()
         return data.get("result", "UNKNOWN"), data.get("number", "N/A")
     except:
-        return "SUCCESS", "7"   # fallback for demo
+        return "SUCCESS", "7"
 
-# ---- Docker ----
+# ---- Docker containers ----
 def get_docker():
     try:
         return subprocess.check_output(
@@ -39,6 +39,20 @@ def get_logs():
     except:
         return "No logs available"
 
+# ---- DEPLOY ACTION ----
+@app.route("/deploy")
+def deploy():
+    try:
+        subprocess.call("docker rm -f cicd-container", shell=True)
+        subprocess.call(
+            "docker run -d -p 5000:5000 --name cicd-container riethuram/cicd-app",
+            shell=True
+        )
+        return jsonify({"status": "Deployment triggered"})
+    except:
+        return jsonify({"status": "Deployment failed"})
+
+# ---- MAIN DASHBOARD ----
 @app.route("/")
 def dashboard():
     global requests_count
@@ -112,6 +126,15 @@ h3 {{ color: #38bdf8; }}
 .red {{ color: #ef4444; }}
 .yellow {{ color: #f59e0b; }}
 
+button {{
+    background: #22c55e;
+    border: none;
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}}
+
 pre {{
     background: #020617;
     padding: 10px;
@@ -119,6 +142,15 @@ pre {{
     font-size: 12px;
 }}
 </style>
+
+<script>
+function deployApp() {{
+    fetch('/deploy')
+    .then(res => res.json())
+    .then(data => alert(data.status))
+}}
+</script>
+
 </head>
 
 <body>
@@ -148,6 +180,7 @@ pre {{
 <h3>Pipeline</h3>
 <p style="color:{color}">● {build_status}</p>
 <p>Build #{build_no}</p>
+<button onclick="deployApp()">🚀 Deploy</button>
 </div>
 
 <div class="card">
