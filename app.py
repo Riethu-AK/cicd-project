@@ -4,19 +4,37 @@ import datetime
 import psutil
 import subprocess
 import platform
+import requests
 
 app = Flask(__name__)
+
+# 🔐 CHANGE THIS
+JENKINS_URL = "http://localhost:8080/job/cicd-pipeline/lastBuild/api/json"
+JENKINS_USER = "your_username"
+JENKINS_TOKEN = "your_api_token"
+
 requests_count = 0
 
-def get_docker_containers():
+# ---- Jenkins real status ----
+def get_jenkins_status():
+    try:
+        res = requests.get(JENKINS_URL, auth=(JENKINS_USER, JENKINS_TOKEN))
+        data = res.json()
+        return data["result"], data["number"]
+    except:
+        return "UNKNOWN", "N/A"
+
+# ---- Docker ----
+def get_docker():
     try:
         return subprocess.check_output(
             "docker ps --format \"{{.Names}} - {{.Status}}\"",
             shell=True
         ).decode()
     except:
-        return "cicd-container - Up (running)"
+        return "Docker access not available"
 
+# ---- Logs ----
 def get_logs():
     try:
         return subprocess.check_output(
@@ -24,7 +42,7 @@ def get_logs():
             shell=True
         ).decode()
     except:
-        return "No logs available"
+        return "No logs"
 
 @app.route("/")
 def dashboard():
@@ -40,20 +58,24 @@ def dashboard():
     cpu_cores = psutil.cpu_count()
     boot_time = datetime.datetime.fromtimestamp(psutil.boot_time())
 
-    containers = get_docker_containers()
+    containers = get_docker()
     logs = get_logs()
+
+    build_status, build_no = get_jenkins_status()
+
+    color = "#22c55e" if build_status == "SUCCESS" else "#ef4444"
 
     return f"""
 <!DOCTYPE html>
 <html>
 <head>
-<title>Premium DevOps Dashboard</title>
+<title>Production DevOps Dashboard</title>
 <meta http-equiv="refresh" content="5">
 
 <style>
 body {{
     margin: 0;
-    font-family: 'Segoe UI', sans-serif;
+    font-family: Arial;
     background: #020617;
     color: white;
     display: flex;
@@ -66,24 +88,14 @@ body {{
     padding: 20px;
 }}
 
-.sidebar h2 {{
-    color: #38bdf8;
-}}
-
-.sidebar p {{
-    margin: 10px 0;
-    color: #94a3b8;
-}}
-
 .main {{
     flex: 1;
 }}
 
 .header {{
     padding: 15px;
-    font-size: 20px;
-    border-bottom: 1px solid #1e293b;
     text-align: center;
+    border-bottom: 1px solid #1e293b;
 }}
 
 .container {{
@@ -100,12 +112,7 @@ body {{
     border: 1px solid #1e293b;
 }}
 
-h3 {{
-    color: #38bdf8;
-}}
-
-.green {{ color: #22c55e; }}
-.yellow {{ color: #f59e0b; }}
+h3 {{ color: #38bdf8; }}
 
 pre {{
     background: #020617;
@@ -122,27 +129,26 @@ pre {{
 <h2>DevOps</h2>
 <p>Dashboard</p>
 <p>Monitoring</p>
-<p>CI/CD Status</p>
+<p>CI/CD</p>
 <p>Logs</p>
 </div>
 
 <div class="main">
 
-<div class="header">🚀 CI/CD DevOps Dashboard</div>
+<div class="header">🚀 Production DevOps Dashboard</div>
 
 <div class="container">
 
 <div class="card">
-<h3>System Info</h3>
-<p>Host: {host}</p>
-<p>Time: {time_now}</p>
-<p class="green">● Running</p>
+<h3>System</h3>
+<p>{host}</p>
+<p>{time_now}</p>
 </div>
 
 <div class="card">
 <h3>Pipeline</h3>
-<p class="green">● SUCCESS</p>
-<p>Jenkins Triggered</p>
+<p style="color:{color}">● {build_status}</p>
+<p>Build #{build_no}</p>
 </div>
 
 <div class="card">
@@ -152,13 +158,13 @@ pre {{
 
 <div class="card">
 <h3>Metrics</h3>
-<p>CPU: <span class="green">{cpu}%</span></p>
-<p>Memory: <span class="yellow">{memory}%</span></p>
+<p>CPU: {cpu}%</p>
+<p>Memory: {memory}%</p>
 </div>
 
 <div class="card">
-<h3>System</h3>
-<p>OS: {os_info}</p>
+<h3>System Info</h3>
+<p>{os_info}</p>
 <p>Cores: {cpu_cores}</p>
 </div>
 
@@ -169,7 +175,7 @@ pre {{
 
 <div class="card">
 <h3>Traffic</h3>
-<p>{requests_count} Requests</p>
+<p>{requests_count} hits</p>
 </div>
 
 <div class="card">
