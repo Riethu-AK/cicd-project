@@ -1,77 +1,124 @@
 from flask import Flask
 import socket
 import datetime
-import random
+import psutil
+import subprocess
 
 app = Flask(__name__)
 
+def get_docker_containers():
+    try:
+        result = subprocess.check_output("docker ps --format \"{{.Names}} - {{.Status}}\"", shell=True).decode()
+        return result if result else "No running containers"
+    except:
+        return "Docker not running"
+
 @app.route("/")
 def dashboard():
-    cpu = random.randint(10, 70)
-    memory = random.randint(100, 500)
+    cpu = psutil.cpu_percent()
+    memory = psutil.virtual_memory().percent
+    host = socket.gethostname()
+    time_now = datetime.datetime.now()
+
+    containers = get_docker_containers()
 
     return f"""
+    <!DOCTYPE html>
     <html>
     <head>
         <title>DevOps Dashboard</title>
         <meta http-equiv="refresh" content="5">
+
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
         <style>
             body {{
-                font-family: Arial;
+                margin: 0;
+                font-family: 'Segoe UI', sans-serif;
                 background: #0f172a;
                 color: white;
-                text-align: center;
             }}
+
+            header {{
+                padding: 20px;
+                text-align: center;
+                background: #020617;
+                font-size: 24px;
+                font-weight: bold;
+            }}
+
+            .container {{
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 20px;
+                padding: 20px;
+            }}
+
             .card {{
                 background: #1e293b;
                 padding: 20px;
-                margin: 20px;
-                border-radius: 10px;
+                border-radius: 12px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.5);
             }}
+
             .status {{
-                color: lightgreen;
+                color: #22c55e;
                 font-weight: bold;
             }}
+
             canvas {{
-                max-width: 400px;
-                margin: auto;
+                width: 100% !important;
+            }}
+
+            pre {{
+                text-align: left;
+                background: #020617;
+                padding: 10px;
+                border-radius: 8px;
+                overflow-x: auto;
             }}
         </style>
     </head>
 
     <body>
 
-    <h1>🚀 CI/CD DevOps Dashboard</h1>
+    <header>🚀 CI/CD DevOps Dashboard</header>
 
-    <div class="card">
-        <h2>System Info</h2>
-        <p>Host: {socket.gethostname()}</p>
-        <p>Time: {datetime.datetime.now()}</p>
-        <p class="status">✔ Application Running</p>
-    </div>
+    <div class="container">
 
-    <div class="card">
-        <h2>Pipeline Status</h2>
-        <p class="status">✔ Last Build: SUCCESS</p>
-        <p>Build Number: #7</p>
-    </div>
+        <div class="card">
+            <h3>System Info</h3>
+            <p>Host: {host}</p>
+            <p>Time: {time_now}</p>
+            <p class="status">✔ Application Running</p>
+        </div>
 
-    <div class="card">
-        <h2>Performance Metrics</h2>
-        <canvas id="chart"></canvas>
+        <div class="card">
+            <h3>Pipeline Status</h3>
+            <p class="status">✔ Last Build: SUCCESS</p>
+            <p>Auto-triggered via Jenkins</p>
+        </div>
+
+        <div class="card">
+            <h3>Container Status</h3>
+            <pre>{containers}</pre>
+        </div>
+
+        <div class="card">
+            <h3>System Metrics</h3>
+            <canvas id="chart"></canvas>
+        </div>
+
     </div>
 
     <script>
         const ctx = document.getElementById('chart');
 
         new Chart(ctx, {{
-            type: 'bar',
+            type: 'doughnut',
             data: {{
-                labels: ['CPU %', 'Memory MB'],
+                labels: ['CPU Usage', 'Memory Usage'],
                 datasets: [{{
-                    label: 'System Usage',
                     data: [{cpu}, {memory}],
                     backgroundColor: ['#22c55e', '#3b82f6']
                 }}]
