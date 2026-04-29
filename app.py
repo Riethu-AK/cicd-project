@@ -1,24 +1,22 @@
-from flask import Flask, jsonify
+from flask import Flask
 import socket
 import datetime
-import subprocess
+import random
 
 app = Flask(__name__)
 
-def get_docker_status():
-    try:
-        result = subprocess.check_output("docker ps", shell=True).decode()
-        return result
-    except:
-        return "Docker not running"
-
 @app.route("/")
 def dashboard():
+    cpu = random.randint(10, 70)
+    memory = random.randint(100, 500)
+
     return f"""
     <html>
     <head>
         <title>DevOps Dashboard</title>
         <meta http-equiv="refresh" content="5">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
         <style>
             body {{
                 font-family: Arial;
@@ -36,8 +34,13 @@ def dashboard():
                 color: lightgreen;
                 font-weight: bold;
             }}
+            canvas {{
+                max-width: 400px;
+                margin: auto;
+            }}
         </style>
     </head>
+
     <body>
 
     <h1>🚀 CI/CD DevOps Dashboard</h1>
@@ -56,29 +59,29 @@ def dashboard():
     </div>
 
     <div class="card">
-        <h2>Container Status</h2>
-        <pre>{get_docker_status()}</pre>
+        <h2>Performance Metrics</h2>
+        <canvas id="chart"></canvas>
     </div>
 
-    <div class="card">
-        <h2>Metrics</h2>
-        <p>CPU Usage: 25%</p>
-        <p>Memory Usage: 120MB</p>
-        <p>Requests Handled: 150</p>
-    </div>
+    <script>
+        const ctx = document.getElementById('chart');
 
-    <div class="card">
-        <h2>Deployment Info</h2>
-        <p>Last Deployment: {datetime.datetime.now()}</p>
-    </div>
+        new Chart(ctx, {{
+            type: 'bar',
+            data: {{
+                labels: ['CPU %', 'Memory MB'],
+                datasets: [{{
+                    label: 'System Usage',
+                    data: [{cpu}, {memory}],
+                    backgroundColor: ['#22c55e', '#3b82f6']
+                }}]
+            }}
+        }});
+    </script>
 
     </body>
     </html>
     """
-
-@app.route("/api/health")
-def health():
-    return jsonify({"status": "UP"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
