@@ -6,22 +6,17 @@ import subprocess
 import platform
 
 app = Flask(__name__)
-
-# ---- request counter ----
 requests_count = 0
 
-# ---- Docker containers ----
 def get_docker_containers():
     try:
-        result = subprocess.check_output(
+        return subprocess.check_output(
             "docker ps --format \"{{.Names}} - {{.Status}}\"",
             shell=True
         ).decode()
-        return result if result else "No running containers"
     except:
         return "cicd-container - Up (running)"
 
-# ---- Logs ----
 def get_logs():
     try:
         return subprocess.check_output(
@@ -41,18 +36,18 @@ def dashboard():
     host = socket.gethostname()
     time_now = datetime.datetime.now()
 
-    containers = get_docker_containers()
-    logs = get_logs()
-
     os_info = platform.system()
     cpu_cores = psutil.cpu_count()
     boot_time = datetime.datetime.fromtimestamp(psutil.boot_time())
+
+    containers = get_docker_containers()
+    logs = get_logs()
 
     return f"""
 <!DOCTYPE html>
 <html>
 <head>
-<title>DevOps Dashboard</title>
+<title>Premium DevOps Dashboard</title>
 <meta http-equiv="refresh" content="5">
 
 <style>
@@ -61,14 +56,34 @@ body {{
     font-family: 'Segoe UI', sans-serif;
     background: #020617;
     color: white;
+    display: flex;
 }}
 
-header {{
+.sidebar {{
+    width: 220px;
+    background: #020617;
+    border-right: 1px solid #1e293b;
+    padding: 20px;
+}}
+
+.sidebar h2 {{
+    color: #38bdf8;
+}}
+
+.sidebar p {{
+    margin: 10px 0;
+    color: #94a3b8;
+}}
+
+.main {{
+    flex: 1;
+}}
+
+.header {{
     padding: 15px;
-    text-align: center;
-    font-size: 22px;
-    font-weight: bold;
+    font-size: 20px;
     border-bottom: 1px solid #1e293b;
+    text-align: center;
 }}
 
 .container {{
@@ -86,7 +101,6 @@ header {{
 }}
 
 h3 {{
-    margin-bottom: 10px;
     color: #38bdf8;
 }}
 
@@ -97,7 +111,6 @@ pre {{
     background: #020617;
     padding: 10px;
     border-radius: 8px;
-    overflow-x: auto;
     font-size: 12px;
 }}
 </style>
@@ -105,7 +118,17 @@ pre {{
 
 <body>
 
-<header>🚀 CI/CD DevOps Dashboard</header>
+<div class="sidebar">
+<h2>DevOps</h2>
+<p>Dashboard</p>
+<p>Monitoring</p>
+<p>CI/CD Status</p>
+<p>Logs</p>
+</div>
+
+<div class="main">
+
+<div class="header">🚀 CI/CD DevOps Dashboard</div>
 
 <div class="container">
 
@@ -113,47 +136,48 @@ pre {{
 <h3>System Info</h3>
 <p>Host: {host}</p>
 <p>Time: {time_now}</p>
-<p class="green">● Application Running</p>
+<p class="green">● Running</p>
 </div>
 
 <div class="card">
-<h3>Pipeline Status</h3>
+<h3>Pipeline</h3>
 <p class="green">● SUCCESS</p>
-<p>Triggered via Jenkins</p>
+<p>Jenkins Triggered</p>
 </div>
 
 <div class="card">
-<h3>Container Status</h3>
+<h3>Containers</h3>
 <pre>{containers}</pre>
 </div>
 
 <div class="card">
-<h3>System Metrics</h3>
-<p>CPU Usage: <span class="green">{cpu}%</span></p>
-<p>Memory Usage: <span class="yellow">{memory}%</span></p>
+<h3>Metrics</h3>
+<p>CPU: <span class="green">{cpu}%</span></p>
+<p>Memory: <span class="yellow">{memory}%</span></p>
 </div>
 
 <div class="card">
-<h3>System Details</h3>
+<h3>System</h3>
 <p>OS: {os_info}</p>
-<p>CPU Cores: {cpu_cores}</p>
+<p>Cores: {cpu_cores}</p>
 </div>
 
 <div class="card">
 <h3>Uptime</h3>
-<p>Started At: {boot_time}</p>
+<p>{boot_time}</p>
 </div>
 
 <div class="card">
 <h3>Traffic</h3>
-<p>Total Requests: {requests_count}</p>
+<p>{requests_count} Requests</p>
 </div>
 
 <div class="card">
-<h3>Recent Logs</h3>
+<h3>Logs</h3>
 <pre>{logs}</pre>
 </div>
 
+</div>
 </div>
 
 </body>
