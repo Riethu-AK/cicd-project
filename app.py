@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, redirect
+from flask import Flask
 import socket
 import datetime
 import psutil
@@ -8,9 +8,6 @@ import requests
 
 app = Flask(__name__)
 
-# 🔧 CHANGE TOKEN if needed
-JENKINS_TRIGGER_URL = "http://localhost:8080/job/cicd-pipeline7/build?token=mytoken123"
-
 # ---- Jenkins status ----
 def get_jenkins_status():
     try:
@@ -19,7 +16,7 @@ def get_jenkins_status():
         data = res.json()
         return data.get("result", "UNKNOWN"), data.get("number", "N/A")
     except:
-        return "SUCCESS", "7"
+        return "SUCCESS", "7"  # fallback
 
 # ---- Docker ----
 def get_docker():
@@ -41,16 +38,7 @@ def get_logs():
     except:
         return "No logs available"
 
-# ---- Deploy ----
-@app.route("/deploy")
-def deploy():
-    try:
-        requests.post(JENKINS_TRIGGER_URL)
-        return jsonify({"status": "Jenkins Pipeline Triggered"})
-    except:
-        return jsonify({"status": "Failed to trigger Jenkins"})
-
-# ---- Dashboard Page ----
+# ---- DASHBOARD ----
 @app.route("/")
 def dashboard():
     cpu = psutil.cpu_percent()
@@ -64,6 +52,7 @@ def dashboard():
 
     containers = get_docker()
     build_status, build_no = get_jenkins_status()
+
     color = "#22c55e" if build_status == "SUCCESS" else "#ef4444"
 
     return f"""
@@ -119,22 +108,19 @@ body {{
     border: 1px solid #1e293b;
 }}
 
-button {{
-    background: #22c55e;
-    border: none;
+h3 {{ color: #38bdf8; }}
+
+.green {{ color: #22c55e; }}
+.red {{ color: #ef4444; }}
+.yellow {{ color: #f59e0b; }}
+
+pre {{
+    background: #020617;
     padding: 10px;
-    border-radius: 6px;
-    cursor: pointer;
+    border-radius: 8px;
+    font-size: 12px;
 }}
 </style>
-
-<script>
-function deployApp() {{
-    fetch('/deploy')
-    .then(res => res.json())
-    .then(data => alert(data.status))
-}}
-</script>
 
 </head>
 
@@ -156,13 +142,14 @@ function deployApp() {{
 <h3>System</h3>
 <p>{host}</p>
 <p>{time_now}</p>
+<p class="green">● Running</p>
 </div>
 
 <div class="card">
 <h3>Pipeline</h3>
 <p style="color:{color}">● {build_status}</p>
 <p>Build #{build_no}</p>
-<button onclick="deployApp()">Deploy</button>
+<p>Status monitored via Jenkins</p>
 </div>
 
 <div class="card">
@@ -172,8 +159,8 @@ function deployApp() {{
 
 <div class="card">
 <h3>Metrics</h3>
-<p>CPU: {cpu}%</p>
-<p>Memory: {memory}%</p>
+<p>CPU: <span class="green">{cpu}%</span></p>
+<p>Memory: <span class="yellow">{memory}%</span></p>
 </div>
 
 <div class="card">
@@ -194,7 +181,7 @@ function deployApp() {{
 </html>
 """
 
-# ---- Logs Page ----
+# ---- LOGS PAGE ----
 @app.route("/logs")
 def logs_page():
     logs = get_logs()
