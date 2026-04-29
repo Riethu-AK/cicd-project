@@ -1,15 +1,24 @@
 from flask import Flask, jsonify
 import socket
 import datetime
+import subprocess
 
 app = Flask(__name__)
 
+def get_docker_status():
+    try:
+        result = subprocess.check_output("docker ps", shell=True).decode()
+        return result
+    except:
+        return "Docker not running"
+
 @app.route("/")
-def home():
+def dashboard():
     return f"""
     <html>
     <head>
-        <title>CI/CD Dashboard</title>
+        <title>DevOps Dashboard</title>
+        <meta http-equiv="refresh" content="5">
         <style>
             body {{
                 font-family: Arial;
@@ -23,52 +32,45 @@ def home():
                 margin: 20px;
                 border-radius: 10px;
             }}
-            button {{
-                padding: 10px 20px;
-                margin: 10px;
-                border: none;
-                background: #22c55e;
-                color: black;
-                cursor: pointer;
+            .status {{
+                color: lightgreen;
+                font-weight: bold;
             }}
         </style>
     </head>
     <body>
 
-        <h1>🚀 CI/CD Pipeline Dashboard</h1>
+    <h1>🚀 CI/CD DevOps Dashboard</h1>
 
-        <div class="card">
-            <h2>System Info</h2>
-            <p><b>Host:</b> {socket.gethostname()}</p>
-            <p><b>Time:</b> {datetime.datetime.now()}</p>
-        </div>
+    <div class="card">
+        <h2>System Info</h2>
+        <p>Host: {socket.gethostname()}</p>
+        <p>Time: {datetime.datetime.now()}</p>
+        <p class="status">✔ Application Running</p>
+    </div>
 
-        <div class="card">
-            <h2>API Controls</h2>
-            <button onclick="getHealth()">Check Health</button>
-            <button onclick="getInfo()">Get Info</button>
-            <p id="output"></p>
-        </div>
+    <div class="card">
+        <h2>Pipeline Status</h2>
+        <p class="status">✔ Last Build: SUCCESS</p>
+        <p>Build Number: #7</p>
+    </div>
 
-        <script>
-        function getHealth() {{
-            fetch('/api/health')
-            .then(res => res.json())
-            .then(data => {{
-                document.getElementById("output").innerText =
-                    "Health: " + data.status;
-            }});
-        }}
+    <div class="card">
+        <h2>Container Status</h2>
+        <pre>{get_docker_status()}</pre>
+    </div>
 
-        function getInfo() {{
-            fetch('/api/info')
-            .then(res => res.json())
-            .then(data => {{
-                document.getElementById("output").innerText =
-                    data.project + " | " + data.developer;
-            }});
-        }}
-        </script>
+    <div class="card">
+        <h2>Metrics</h2>
+        <p>CPU Usage: 25%</p>
+        <p>Memory Usage: 120MB</p>
+        <p>Requests Handled: 150</p>
+    </div>
+
+    <div class="card">
+        <h2>Deployment Info</h2>
+        <p>Last Deployment: {datetime.datetime.now()}</p>
+    </div>
 
     </body>
     </html>
@@ -76,18 +78,7 @@ def home():
 
 @app.route("/api/health")
 def health():
-    return jsonify({
-        "status": "UP",
-        "message": "Application is running"
-    })
-
-@app.route("/api/info")
-def info():
-    return jsonify({
-        "project": "CI/CD Pipeline with Jenkins and Docker",
-        "developer": "RIETHURAM A K",
-        "version": "1.0"
-    })
+    return jsonify({"status": "UP"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
