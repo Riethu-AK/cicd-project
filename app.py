@@ -134,7 +134,7 @@ pre {{
 
 <div class="main">
 
-<div class="header">🚀 CI/CD Dashboard</div>
+<div class="header">REVIEW Dashboard</div>
 
 <div class="container">
 
